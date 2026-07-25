@@ -32,7 +32,7 @@ monthly tracking, charts, savings goals, streaks, and badges — built with
 - **Achievement badges** (🏆💰🎯)
 - **Calendar view** — click a date to see that day's transactions
 
----
+
 
 
 
