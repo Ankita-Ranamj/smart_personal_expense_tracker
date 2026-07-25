@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+
+<div class="dash-header">
+  <h1>All Transactions</h1>
+  <div class="header-actions">
+    <a href="{{ url_for('export_csv') }}" class="btn-secondary">⬇ Export CSV</a>
+    <a href="{{ url_for('add_transaction') }}" class="btn-primary">+ Add</a>
+  </div>
+</div>
+
+<div class="panel glass filter-panel">
+  <form method="GET" class="filter-form">
+    <input type="text" name="search" placeholder="🔍 Search notes..." value="{{ request.args.get('search','') }}">
+    <select name="type">
+      <option value="">All Types</option>
+      <option value="expense" {{ 'selected' if request.args.get('type')=='expense' }}>Expense</option>
+      <option value="income" {{ 'selected' if request.args.get('type')=='income' }}>Income</option>
+    </select>
+    <select name="category">
+      <option value="">All Categories</option>
+      {% for c in categories %}
+        <option value="{{ c }}" {{ 'selected' if request.args.get('category')==c }}>{{ c }}</option>
+      {% endfor %}
+      {% for s in income_sources %}
+        <option value="{{ s }}" {{ 'selected' if request.args.get('category')==s }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="date_from" value="{{ request.args.get('date_from','') }}">
+    <input type="date" name="date_to" value="{{ request.args.get('date_to','') }}">
+    <button type="submit" class="btn-primary">Filter</button>
+    <a href="{{ url_for('transactions') }}" class="btn-secondary">Reset</a>
+  </form>
+</div>
+
+<div class="panel glass">
+  {% if txns %}
+  <table class="txn-table full">
+    <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Note</th><th>Amount</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for t in txns %}
+      <tr>
+        <td>{{ t.txn_date.strftime('%d %b %Y') }}</td>
+        <td><span class="pill pill-{{ t.type }}">{{ t.type }}</span></td>
+        <td>{{ emoji_for(t.category) }} {{ t.category }}</td>
+        <td>{{ t.note or '—' }}</td>
+        <td class="{{ 'income-text' if t.type == 'income' else 'expense-text' }}">
+          {{ '+' if t.type == 'income' else '-' }}{{ user.currency }}{{ "%.2f"|format(t.amount) }}
+        </td>
+        <td class="actions">
+          <a href="{{ url_for('edit_transaction', txn_id=t.id) }}" title="Edit">✏️</a>
+          <form method="POST" action="{{ url_for('delete_transaction', txn_id=t.id) }}" style="display:inline"
+                onsubmit="return confirm('Delete this transaction?');">
+            <button type="submit" title="Delete" class="icon-btn">🗑️</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="muted">No transactions match your filters.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

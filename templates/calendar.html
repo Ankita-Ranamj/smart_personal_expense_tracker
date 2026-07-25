@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Calendar{% endblock %}
+{% block content %}
+
+<h1>📅 Calendar View</h1>
+<p class="subtitle">Click a date to see that day's expenses.</p>
+
+<div class="panel glass">
+  <div class="calendar-controls">
+    <button id="prevMonth" class="btn-secondary">← Prev</button>
+    <h3 id="calTitle"></h3>
+    <button id="nextMonth" class="btn-secondary">Next →</button>
+  </div>
+  <div id="calendarGrid" class="calendar-grid"></div>
+</div>
+
+<div id="dayModal" class="modal hidden">
+  <div class="modal-content glass">
+    <button id="closeModal" class="modal-close">✕</button>
+    <h3 id="modalDate"></h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const totalsByDate = {{ totals_by_date | tojson }};
+const currency = "{{ user.currency }}";
+let viewDate = new Date();
+
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const title = document.getElementById('calTitle');
+  grid.innerHTML = '';
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  title.textContent = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  for (let i = 0; i < firstDay; i++) {
+    grid.appendChild(document.createElement('div'));
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    const spent = totalsByDate[dateStr];
+    cell.innerHTML = `<span class="cal-num">${d}</span>` + (spent ? `<span class="cal-amt">${currency}${spent.toFixed(0)}</span>` : '');
+    if (spent) cell.classList.add('has-expense');
+    cell.onclick = () => openDay(dateStr);
+    grid.appendChild(cell);
+  }
+}
+
+function openDay(dateStr) {
+  fetch(`/api/day/${dateStr}`).then(r => r.json()).then(data => {
+    document.getElementById('modalDate').textContent = dateStr;
+    const body = document.getElementById('modalBody');
+    if (data.length === 0) {
+      body.innerHTML = '<p class="muted">No transactions on this day.</p>';
+    } else {
+      body.innerHTML = data.map(t =>
+        `<div class="day-txn"><span>${t.emoji} ${t.category}</span><span class="${t.type === 'income' ? 'income-text' : 'expense-text'}">${t.type === 'income' ? '+' : '-'}${currency}${t.amount.toFixed(2)}</span></div>`
+      ).join('');
+    }
+    document.getElementById('dayModal').classList.remove('hidden');
+  });
+}
+
+document.getElementById('closeModal').onclick = () => document.getElementById('dayModal').classList.add('hidden');
+document.getElementById('prevMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); renderCalendar(); };
+document.getElementById('nextMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); renderCalendar(); };
+
+renderCalendar();
+</script>
+{% endblock %}

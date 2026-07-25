@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card glass">
+    <h1>💸 Welcome Back</h1>
+    <p class="subtitle">Log in to track your money smartly.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+        {% for category, msg in messages %}
+          <div class="flash flash-{{ category }}">{{ msg }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <label>Email</label>
+      <input type="email" name="email" required placeholder="you@example.com">
+      <label>Password</label>
+      <input type="password" name="password" required placeholder="••••••••">
+      <button type="submit" class="btn-primary">Login</button>
+    </form>
+    <div class="auth-links">
+      <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
+      <a href="{{ url_for('signup') }}">Create an account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

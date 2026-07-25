@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="dash-header">
+  <div>
+    <h1>Hi, {{ user.name.split(' ')[0] }} 👋</h1>
+    <p class="subtitle">Here's your financial overview.</p>
+  </div>
+  <a href="{{ url_for('add_transaction') }}" class="btn-primary btn-add">+ Add Transaction</a>
+</div>
+
+{% if limit_warning %}
+<div class="alert-banner">{{ limit_warning }}</div>
+{% endif %}
+
+<div class="insight-card glass">
+  <span class="insight-icon">🤖</span>
+  <div>
+    <h3>Smart Insight</h3>
+    <p>{{ insight }}</p>
+  </div>
+</div>
+
+<div class="cards-grid">
+  <div class="stat-card glass">
+    <span class="stat-label">Today's Expense</span>
+    <span class="stat-value">{{ user.currency }}{{ "%.2f"|format(today_expense) }}</span>
+  </div>
+  <div class="stat-card glass">
+    <span class="stat-label">This Month Expense</span>
+    <span class="stat-value">{{ user.currency }}{{ "%.2f"|format(month_expense) }}</span>
+  </div>
+  <div class="stat-card glass">
+    <span class="stat-label">This Month Income</span>
+    <span class="stat-value">{{ user.currency }}{{ "%.2f"|format(month_income) }}</span>
+  </div>
+  <div class="stat-card glass highlight">
+    <span class="stat-label">Remaining Balance</span>
+    <span class="stat-value">{{ user.currency }}{{ "%.2f"|format(balance) }}</span>
+  </div>
+</div>
+
+<div class="mid-grid">
+  <div class="panel glass">
+    <h3>🎯 Savings Goal</h3>
+    {% if user.savings_goal_amount and user.savings_goal_amount > 0 %}
+      <p>{{ user.savings_goal_name }} — {{ user.currency }}{{ "%.0f"|format(user.savings_saved) }} / {{ user.currency }}{{ "%.0f"|format(user.savings_goal_amount) }}</p>
+      <div class="progress-bar"><div class="progress-fill" style="width:{{ goal_progress }}%"></div></div>
+      <span class="progress-label">{{ goal_progress }}% complete</span>
+    {% else %}
+      <p class="muted">No savings goal set yet. <a href="{{ url_for('settings') }}">Set one now →</a></p>
+    {% endif %}
+  </div>
+
+  <div class="panel glass">
+    <h3>🔥 Streak</h3>
+    {% if streak > 0 %}
+      <p class="streak-number">{{ streak }} day{{ 's' if streak != 1 else '' }}</p>
+      <p class="muted">without exceeding your daily limit</p>
+    {% else %}
+      <p class="muted">Set a daily limit in Settings to start a streak.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel glass">
+    <h3>🏆 Badges</h3>
+    {% if badges %}
+      <div class="badge-list">
+      {% for icon, title, desc in badges %}
+        <div class="badge-item" title="{{ desc }}">{{ icon }} {{ title }}</div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">Keep tracking to earn badges!</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="panel glass">
+    <h3>Expense by Category</h3>
+    <canvas id="pieChart"></canvas>
+  </div>
+  <div class="panel glass">
+    <h3>Monthly Expense (6 months)</h3>
+    <canvas id="barChart"></canvas>
+  </div>
+  <div class="panel glass">
+    <h3>Weekly Trend</h3>
+    <canvas id="lineChart"></canvas>
+  </div>
+  <div class="panel glass">
+    <h3>Income vs Expense</h3>
+    <canvas id="donutChart"></canvas>
+  </div>
+</div>
+
+<div class="panel glass recent-panel">
+  <h3>Recent Transactions</h3>
+  {% if recent %}
+    <table class="txn-table">
+      <thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th></tr></thead>
+      <tbody>
+      {% for t in recent %}
+        <tr>
+          <td>{{ t.txn_date.strftime('%d %b %Y') }}</td>
+          <td>{{ emoji_for(t.category) }} {{ t.category }}</td>
+          <td>{{ t.note or '—' }}</td>
+          <td class="{{ 'income-text' if t.type == 'income' else 'expense-text' }}">
+            {{ '+' if t.type == 'income' else '-' }}{{ user.currency }}{{ "%.2f"|format(t.amount) }}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No transactions yet. <a href="{{ url_for('add_transaction') }}">Add your first one →</a></p>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+fetch("{{ url_for('chart_data') }}")
+  .then(r => r.json())
+  .then(data => {
+    const isDark = document.body.classList.contains('dark');
+    const textColor = isDark ? '#e5e7eb' : '#1f2937';
+    Chart.defaults.color = textColor;
+
+    const palette = ['#8b5cf6','#ec4899','#06b6d4','#f59e0b','#10b981','#ef4444','#3b82f6','#a855f7'];
+
+    new Chart(document.getElementById('pieChart'), {
+      type: 'pie',
+      data: { labels: data.pie_labels, datasets: [{ data: data.pie_values, backgroundColor: palette }] },
+    });
+
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: { labels: data.bar_labels, datasets: [{ label: 'Expense', data: data.bar_values, backgroundColor: '#8b5cf6' }] },
+      options: { scales: { y: { beginAtZero: true } } }
+    });
+
+    new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: { labels: data.week_labels, datasets: [{ label: 'Spent', data: data.week_values, borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.2)', tension: 0.35, fill: true }] },
+    });
+
+    new Chart(document.getElementById('donutChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Income', 'Expense'],
+        datasets: [{ data: [data.income_vs_expense.income, data.income_vs_expense.expense], backgroundColor: ['#10b981', '#ef4444'] }]
+      }
+    });
+  });
+</script>
+{% endblock %}

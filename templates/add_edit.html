@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if txn else 'Add' }} Transaction{% endblock %}
+{% block content %}
+<div class="form-wrap">
+  <div class="panel glass form-card">
+    <h1>{{ '✏️ Edit' if txn else '➕ Add' }} Transaction</h1>
+    <form method="POST" id="txnForm">
+      <label>Type</label>
+      <div class="toggle-group">
+        <label class="toggle-option">
+          <input type="radio" name="type" value="expense" {{ 'checked' if not txn or txn.type=='expense' }} onchange="updateCategoryOptions()"> Expense
+        </label>
+        <label class="toggle-option">
+          <input type="radio" name="type" value="income" {{ 'checked' if txn and txn.type=='income' }} onchange="updateCategoryOptions()"> Income
+        </label>
+      </div>
+
+      <label>Category</label>
+      <select name="category" id="categorySelect" required>
+        {% for c in categories %}
+          <option value="{{ c }}" class="expense-opt" {{ 'selected' if txn and txn.category == c }}>{{ c }}</option>
+        {% endfor %}
+        {% for s in income_sources %}
+          <option value="{{ s }}" class="income-opt" style="display:none" {{ 'selected' if txn and txn.category == s }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Amount</label>
+      <input type="number" step="0.01" min="0" name="amount" required value="{{ txn.amount if txn else '' }}">
+
+      <label>Date</label>
+      <input type="date" name="txn_date" required value="{{ today }}">
+
+      <label>Note (optional)</label>
+      <input type="text" name="note" placeholder="e.g. Lunch with friends" value="{{ txn.note if txn else '' }}">
+
+      <button type="submit" class="btn-primary">{{ 'Save Changes' if txn else 'Add Transaction' }}</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function updateCategoryOptions() {
+  const type = document.querySelector('input[name=type]:checked').value;
+  document.querySelectorAll('.expense-opt').forEach(o => o.style.display = type === 'expense' ? 'block' : 'none');
+  document.querySelectorAll('.income-opt').forEach(o => o.style.display = type === 'income' ? 'block' : 'none');
+}
+updateCategoryOptions();
+</script>
+{% endblock %}

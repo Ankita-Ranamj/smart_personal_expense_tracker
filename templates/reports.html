@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+
+<h1>📊 Reports</h1>
+
+<div class="cards-grid">
+  <div class="stat-card glass">
+    <span class="stat-label">Top Spending Category</span>
+    <span class="stat-value">{% if top_category %}{{ emoji_for(top_category) }} {{ top_category }}{% else %}—{% endif %}</span>
+  </div>
+  <div class="stat-card glass">
+    <span class="stat-label">This Month Expense</span>
+    <span class="stat-value">{{ user.currency }}{{ "%.2f"|format(monthly_expense) }}</span>
+  </div>
+  <div class="stat-card glass">
+    <span class="stat-label">This Month Income</span>
+    <span class="stat-value">{{ user.currency }}{{ "%.2f"|format(monthly_income) }}</span>
+  </div>
+</div>
+
+<div class="mid-grid">
+  <div class="panel glass">
+    <h3>Monthly Report</h3>
+    <p>Income: <strong class="income-text">{{ user.currency }}{{ "%.2f"|format(monthly_income) }}</strong></p>
+    <p>Expense: <strong class="expense-text">{{ user.currency }}{{ "%.2f"|format(monthly_expense) }}</strong></p>
+    <p>Net: <strong>{{ user.currency }}{{ "%.2f"|format(monthly_income - monthly_expense) }}</strong></p>
+  </div>
+  <div class="panel glass">
+    <h3>Yearly Report</h3>
+    <p>Income: <strong class="income-text">{{ user.currency }}{{ "%.2f"|format(yearly_income) }}</strong></p>
+    <p>Expense: <strong class="expense-text">{{ user.currency }}{{ "%.2f"|format(yearly_expense) }}</strong></p>
+    <p>Net: <strong>{{ user.currency }}{{ "%.2f"|format(yearly_income - yearly_expense) }}</strong></p>
+  </div>
+</div>
+
+<div class="panel glass">
+  <h3>Spending by Category</h3>
+  {% if by_cat %}
+    <table class="txn-table">
+      <thead><tr><th>Category</th><th>Total Spent</th></tr></thead>
+      <tbody>
+      {% for cat, amt in by_cat.items()|sort(attribute='1', reverse=True) %}
+        <tr><td>{{ emoji_for(cat) }} {{ cat }}</td><td class="expense-text">{{ user.currency }}{{ "%.2f"|format(amt) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No expense data yet.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
